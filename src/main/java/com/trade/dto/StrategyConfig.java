@@ -1,13 +1,42 @@
 package com.trade.dto;
 
 
+import com.trade.enums.ExchangeEnums;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Set;
 
+/**
+ * 构造函数，初始化策略配置。
+ *
+ * @param strategyId      策略唯一标识符，用于区分不同策略。
+ *                        类型：String
+ *                        示例："strategy1"
+ *                        必填：是
+ * @param subscribedTopics 策略订阅的 WebSocket 主题列表。
+ *                         类型：Set<String>
+ *                         示例：{"{\"channel\":\"tickers\",\"instId\":\"BTC-USDT\"}"}
+ *                         默认：空集合
+ * @param isAsync         是否异步处理消息。
+ *                        类型：boolean
+ *                        用途：true 表示消息处理在单独线程中执行，适合高吞吐量场景；false 表示同步处理，适合简单逻辑。
+ *                        默认：false
+ * @param priority        策略优先级，影响消息分发的顺序（较低值优先）。
+ *                        类型：int
+ *                        范围：0（最高）到 100（最低）
+ *                        默认：50
+ * @param autoRestart     是否在客户端重连后自动重启策略。
+ *                        类型：boolean
+ *                        用途：true 表示在 WebSocket 断线重连后自动恢复策略运行；false 需手动重启。
+ *                        默认：true
+ */
 @Data
 public class StrategyConfig {
+    private String exchange = ExchangeEnums.BINANCE.name();
+
+    private Set<String> subscribedTopics;
     private final BigDecimal hedgeRatio;
     private final BigDecimal gridInterval;
     private final String symbol;
@@ -25,6 +54,8 @@ public class StrategyConfig {
     private final BigDecimal takeProfit;
     private final int atrPeriod;
     private final BigDecimal atrMultiplier;
+
+    private Boolean isAutoRestart;
 
     public StrategyConfig(BigDecimal hedgeRatio, BigDecimal gridInterval, String symbol,
                           int gridCount, int priceScale, int quantityScale,

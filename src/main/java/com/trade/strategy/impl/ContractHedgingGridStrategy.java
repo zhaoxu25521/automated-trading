@@ -6,6 +6,7 @@ import com.trade.enums.OrderEnums.*;
 import com.trade.exchange.ExchangeApi;
 import com.trade.strategy.TradeStrategy;
 import io.micrometer.observation.annotation.Observed;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,12 +26,13 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
     // 订单和仓位状态管理
     private final ConcurrentHashMap<String, Order> activeOrders = new ConcurrentHashMap<>();
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+//    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     // 交易所接口
     private final ExchangeApi exchangeApi;
 
     // 配置参数
+    @Getter
     private final StrategyConfig config;
 
     // 网格价格和ATR缓存
@@ -43,15 +45,30 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
     private BigDecimal shortPosition = BigDecimal.ZERO;
     private BigDecimal availableMargin = BigDecimal.ZERO;
     private BigDecimal totalPnl = BigDecimal.ZERO;
-
+    private Status status;
     public ContractHedgingGridStrategy(ExchangeApi exchangeApi, StrategyConfig config) {
         this.exchangeApi = exchangeApi;
         this.config = config;
     }
 
     @Override
+    public Status getStatus() {
+        return status;
+    }
+
+    @Override
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    @Override
     public String name() {
         return "contract-hedging-grid";
+    }
+
+    @Override
+    public String getKey() {
+        return String.format("%s-%s", name(), config.getSymbol());
     }
 
     // 启动策略
@@ -66,6 +83,7 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
                 updateMargin();
                 updateATR();
                 initializeGrids();
+                status = Status.RUNNING;
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Failed to start strategy: {0}", e.getMessage());
                 stop();
@@ -76,16 +94,8 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
     // 停止策略
     public void stop() {
         if (isRunning.compareAndSet(true, false)) {
-            scheduler.shutdown();
-            try {
-                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                    scheduler.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                LOGGER.severe("Error shutting down scheduler: " + e.getMessage());
-                Thread.currentThread().interrupt();
-            }
             cancelAllOrders();
+            status = Status.STOPPED;
             LOGGER.info("Contract hedging grid strategy stopped.");
         }
     }
