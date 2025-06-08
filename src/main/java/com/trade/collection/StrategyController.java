@@ -8,6 +8,7 @@ import com.trade.strategy.StrategyManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import static com.trade.socket.constants.ExchangeConstant.*;
+import static com.trade.constants.ExchangeConstant.*;
 
 @RestController
 @RequestMapping("/api/strategy")
@@ -31,7 +32,8 @@ public class StrategyController {
         exchangeConfig.setExchangeName(ExchangeEnums.OKX.name());
         Map<String,String> params = new HashMap<>();
         params.put(WS_URL,"wss://wspap.okx.com:8443/ws/v5/public");
-        params.put(PING,"{\"op\":\"ping\"}");
+//        params.put(PING,"{\"op\":\"ping\"}");
+        params.put(PING,"ping");
         params.put(PING_INTERVAL_TIME,"30000");
         params.put(PING_TIMEOUT_TIME,"60000");
 
@@ -70,5 +72,10 @@ public class StrategyController {
                 }} // subscribedTopics
         );;
         strategyManager.addStrategy(config);
+    }
+
+    @GetMapping("/start")
+    public void startStrategy(@RequestParam("key")String key){
+        strategyManager.startStrategy(key);
     }
 }

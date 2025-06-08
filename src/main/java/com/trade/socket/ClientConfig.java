@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.trade.socket.constants.ExchangeConstant.WS_URL;
+import static com.trade.constants.ExchangeConstant.WS_URL;
 
 // 客户端配置类，包含URL和SSL上下文
 public class ClientConfig {

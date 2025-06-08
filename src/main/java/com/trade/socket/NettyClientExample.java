@@ -5,8 +5,6 @@ import org.json.JSONObject;
 
 import java.util.function.Consumer;
 
-import static com.trade.socket.constants.ExchangeConstant.OKX_SUBSCRIPTION_FORMAT;
-
 public class NettyClientExample {
     static String OKX_WS_URL = "wss://wspap.okx.com:8443/ws/v5/public";
     public static void main(String[] args) throws Exception {

@@ -196,8 +196,10 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
 
     // 价格变化监控
     @Override
-    public void priceChange(String symbol,BigDecimal price,Long ts) {
-        if (!isRunning.get()) return;
+    public void priceChange(String symbol,BigDecimal currentPrice,Long ts) {
+        if (!isRunning.get()){
+            return;
+        }
 
         try {
             updateMargin();
@@ -208,11 +210,11 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
                 return;
             }
 
-            BigDecimal currentPrice = retryOperation(() -> exchangeApi.getMarketPrice(config.getSymbol()), 3);
-            if (currentPrice == null) {
-                LOGGER.warning("Failed to fetch market price after retries");
-                return;
-            }
+//            BigDecimal currentPrice = retryOperation(() -> exchangeApi.getMarketPrice(config.getSymbol()), 3);
+//            if (currentPrice == null) {
+//                LOGGER.warning("Failed to fetch market price after retries");
+//                return;
+//            }
 
             // 检查强平风险
             checkLiquidationRisk(currentPrice);
@@ -298,7 +300,7 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
         try {
             String orderId = retryOperation(() -> exchangeApi.placeOrder(symbol, side, price, quantity), 3);
             if (orderId != null) {
-                activeOrders.put(orderId, new Order(orderId, symbol, side, price, quantity, config.getQuantityScale()));
+//                activeOrders.put(orderId, new Order(orderId, symbol, side, price, quantity, config.getQuantityScale()));
                 LOGGER.info(String.format("Placed order: %s %s@%s, Qty: %s",
                         side, symbol, price.toString(), quantity.toString()));
             } else {

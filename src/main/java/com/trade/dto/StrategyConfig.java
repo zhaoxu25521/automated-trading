@@ -57,8 +57,8 @@ public class StrategyConfig {
     private final BigDecimal atrMultiplier;
     private int priority;
 
-    private Boolean isAutoRestart;
     private Boolean autoRestart;
+    private Boolean async = false;
 
     public StrategyConfig(String exchange,BigDecimal hedgeRatio, BigDecimal gridInterval, String symbol,
                           int gridCount, int priceScale, int quantityScale,
@@ -87,7 +87,7 @@ public class StrategyConfig {
 
         this.subscribedTopics = subscribedTopics != null ? new HashSet<>(subscribedTopics) : new HashSet<>();
         this.priority = Math.max(0, Math.min(100, priority));
-        this.autoRestart = autoRestart;
+        this.autoRestart = true;
     }
 
     public BigDecimal getHedgeRatio() { return hedgeRatio; }

@@ -1,4 +1,4 @@
-package com.trade.socket.constants;
+package com.trade.constants;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -60,7 +60,7 @@ public class ExchangeConstant {
     public static final Map<String, Integer> reconnectAttempts = new ConcurrentHashMap<>();
 
 
-    /**** params ****/
+    /**** exchange params  ****/
     // 是否测试环境
     public static final String isTest = "isTest";
     // socket 地址

@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static com.trade.socket.constants.ExchangeConstant.*;
+import static com.trade.constants.ExchangeConstant.*;
 
 public class NettySocketClient {
     private final EventLoopGroup group;
@@ -32,7 +32,7 @@ public class NettySocketClient {
         this.messageHandler = message -> {
             messageHandler.accept(message);
             // 处理心跳响应
-            if (message.getMessage().contains("\"op\":\"pong\"")) {
+            if (message.getMessage().contains("pong")) {
                 ClientConfig config = CLIENT_CONFIG.get(message.getExchange());
                 if (config != null) {
                     config.lastHeartbeatResponded.set(true);

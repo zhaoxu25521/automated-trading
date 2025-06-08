@@ -15,6 +15,7 @@ public class ExchangeFactory {
 
     public ExchangeFactory(){
         exchangeApiMap.put(ExchangeEnums.BINANCE.name(),new BinanceFuturesApi());
+        exchangeApiMap.put(ExchangeEnums.OKX.name(), new OkxFuturesApi());
     }
 
     public ExchangeApi get(String name){
