@@ -2,9 +2,11 @@ package com.trade.collection;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.trade.socket.MessageData;
 import com.trade.socket.NettySocketClient;
 import com.trade.socket.SubscriptionCallback;
 import com.trade.socket.SubscriptionConfig;
+import org.apache.logging.log4j.message.Message;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -63,11 +65,11 @@ public class TestCollection {
     @GetMapping("/connect")
     public void connect() throws Exception {
         // 创建消息处理器
-        Consumer<String> messageHandler = System.out::println;
+        Consumer<MessageData> messageHandler = System.out::println;
         // 初始化客户端
         client = new NettySocketClient(messageHandler);
 
-        client.startClient("client1", OKX_WS_URL, jsonConfig, okxCallback,false,new String[]{},new String[]{});
+//        client.startClient("client1", OKX_WS_URL, jsonConfig, okxCallback,false,new String[]{},new String[]{});
     }
 
 

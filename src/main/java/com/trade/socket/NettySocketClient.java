@@ -1,5 +1,6 @@
 package com.trade.socket;
 
+import com.trade.dto.ExchangeConfig;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -9,52 +10,47 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.websocketx.*;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
-import org.springframework.stereotype.Component;
-
-import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import static com.trade.socket.constants.ExchangeConstant.*;
+
 public class NettySocketClient {
     private final EventLoopGroup group;
-    private final Map<String, ClientConfig> clientConfigs;
-    private final Map<String, Bootstrap> clientBootstraps;
-    private final Map<String, Channel> clientChannels;
-    private final Map<String, Set<String>> clientSubscriptions;
-    private final Map<String, SubscriptionConfig> clientSubscriptionConfigs;
-    private final Map<String, SubscriptionCallback> clientSubscriptionCallbacks;
-    private final Map<String, WebSocketClientHandshaker> clientHandshakers;
-    private final Consumer<String> messageHandler;
+    private final Consumer<MessageData> messageHandler;
     private volatile boolean running;
     private final int maxReconnectAttempts = 5;
     private final long reconnectDelayMs = 3000;
-    private final Map<String, Integer> reconnectAttempts;
 
-    public NettySocketClient(Consumer<String> messageHandler) {
-        this.messageHandler = messageHandler;
-        this.clientConfigs = new ConcurrentHashMap<>();
-        this.clientBootstraps = new ConcurrentHashMap<>();
-        this.clientChannels = new ConcurrentHashMap<>();
-        this.clientSubscriptions = new ConcurrentHashMap<>();
-        this.clientSubscriptionConfigs = new ConcurrentHashMap<>();
-        this.clientSubscriptionCallbacks = new ConcurrentHashMap<>();
-        this.clientHandshakers = new ConcurrentHashMap<>();
-        this.reconnectAttempts = new ConcurrentHashMap<>();
+    public NettySocketClient(Consumer<MessageData> messageHandler) {
+        this.messageHandler = message -> {
+            messageHandler.accept(message);
+            // 处理心跳响应
+            if (message.getMessage().contains("\"op\":\"pong\"")) {
+                ClientConfig config = CLIENT_CONFIG.get(message.getExchange());
+                if (config != null) {
+                    config.lastHeartbeatResponded.set(true);
+                    System.out.println("客户端 " + message.getExchange() + " 收到心跳响应: " + message);
+                }
+            }
+        };
+//        this.messageHandler = messageHandler;
         this.group = new NioEventLoopGroup();
         this.running = false;
     }
-
+    private String getClientIdByMessage(String message) {
+        // 简化处理，实际可根据消息内容或上下文映射
+        return clientChannels.keySet().stream().findFirst().orElse(null);
+    }
     private Bootstrap createBootstrap(ClientConfig config) {
         Bootstrap bootstrap = new Bootstrap();
+        Map<String, String> params = config.params;
         bootstrap.group(group)
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.SO_KEEPALIVE, true)
@@ -68,13 +64,17 @@ public class NettySocketClient {
                         }
                         pipeline.addLast(new HttpClientCodec());
                         pipeline.addLast(new HttpObjectAggregator(8192));
-                        pipeline.addLast(new IdleStateHandler(0, 30, 0, TimeUnit.SECONDS));
+                        // 增强心跳机制
+                        pipeline.addLast(new IdleStateHandler(
+                                Long.valueOf(params.get(PING_INTERVAL_TIME)) / 1000, // 读空闲超时
+                                Long.valueOf(params.get(PING_TIMEOUT_TIME)) / 1000, // 写空闲超时
+                                0, TimeUnit.SECONDS));
                         pipeline.addLast(new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelActive(ChannelHandlerContext ctx) {
                                 String clientId = getClientId(ctx.channel().id().asLongText());
                                 if (clientId != null) {
-                                    ClientConfig clientConfig = clientConfigs.get(clientId);
+                                    ClientConfig clientConfig = CLIENT_CONFIG.get(clientId);
                                     if (clientConfig != null) {
                                         WebSocketClientHandshaker handshaker = WebSocketClientHandshakerFactory.newHandshaker(
                                                 clientConfig.uri, WebSocketVersion.V13, null, true, new DefaultHttpHeaders());
@@ -101,7 +101,7 @@ public class NettySocketClient {
                                             protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) {
                                                 if (frame instanceof TextWebSocketFrame) {
                                                     String message = ((TextWebSocketFrame) frame).text();
-                                                    messageHandler.accept(message);
+                                                    messageHandler.accept(new MessageData(clientId, message));
                                                     if (message.startsWith("ACK:")) {
                                                         handleAckMessage(clientId, message);
                                                     }
@@ -133,7 +133,34 @@ public class NettySocketClient {
                             @Override
                             public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
                                 if (evt instanceof IdleStateEvent) {
-                                    ctx.writeAndFlush(new TextWebSocketFrame("heartbeat"));
+                                    IdleStateEvent event = (IdleStateEvent) evt;
+                                    String clientId = getClientId(ctx.channel().id().asLongText());
+                                    if (clientId == null) return;
+                                    ClientConfig config = CLIENT_CONFIG.get(clientId);
+                                    if (config == null) return;
+
+                                    if (event.state() == IdleState.WRITER_IDLE) {
+                                        // 发送心跳
+                                        if (!config.lastHeartbeatResponded.get()) {
+                                            System.err.println("客户端 " + clientId + " 上次心跳未收到响应，关闭连接");
+                                            ctx.close();
+                                            return;
+                                        }
+                                        ctx.writeAndFlush(new TextWebSocketFrame(params.get(PING)))
+                                                .addListener(future -> {
+                                                    if (future.isSuccess()) {
+                                                        System.out.println("客户端 " + clientId + " 发送心跳: " + params.get(PING));
+                                                        config.lastHeartbeatResponded.set(false);
+                                                    } else {
+                                                        System.err.println("客户端 " + clientId + " 发送心跳失败: " + future.cause().getMessage());
+                                                        ctx.close();
+                                                    }
+                                                });
+                                    } else if (event.state() == IdleState.READER_IDLE) {
+                                        // 读空闲超时，关闭连接
+                                        System.err.println("客户端 " + clientId + " 读空闲超时，未收到服务器数据，关闭连接");
+                                        ctx.close();
+                                    }
                                 }
                             }
 
@@ -149,27 +176,27 @@ public class NettySocketClient {
         return bootstrap;
     }
 
-    public void startClient(String clientId, String wsUrl, SubscriptionConfig config, SubscriptionCallback callback,
+    public void startClient(ExchangeConfig exchangeConfig, SubscriptionConfig config, SubscriptionCallback callback,
                             boolean trustAllCertificates, String[] supportedProtocols, String[] supportedCiphers) throws Exception {
         if (!running) {
             running = true;
         }
-        ClientConfig clientConfig = new ClientConfig(wsUrl, trustAllCertificates, supportedProtocols, supportedCiphers);
-        clientConfigs.put(clientId, clientConfig);
-        clientBootstraps.put(clientId, createBootstrap(clientConfig));
-        clientSubscriptions.putIfAbsent(clientId, ConcurrentHashMap.newKeySet());
-        clientSubscriptionConfigs.put(clientId, config != null ? config :
+        ClientConfig clientConfig = new ClientConfig(exchangeConfig.getParms(), trustAllCertificates, supportedProtocols, supportedCiphers);
+        CLIENT_CONFIG.put(exchangeConfig.getExchangeName(), clientConfig);
+        clientBootstraps.put(exchangeConfig.getExchangeName(), createBootstrap(clientConfig));
+        clientSubscriptions.putIfAbsent(exchangeConfig.getExchangeName(), ConcurrentHashMap.newKeySet());
+        clientSubscriptionConfigs.put(exchangeConfig.getExchangeName(), config != null ? config :
                 new SubscriptionConfig(
                         subscriptionTopic -> "{\"op\":\"subscribe\",\"args\":[" + subscriptionTopic + "]}",
                         subscriptionTopic -> "{\"op\":\"unsubscribe\",\"args\":[" + subscriptionTopic + "]}"
                 ));
-        clientSubscriptionCallbacks.put(clientId, callback);
-        reconnectAttempts.put(clientId, 0);
-        connect(clientId);
+        clientSubscriptionCallbacks.put(exchangeConfig.getExchangeName(), callback);
+        reconnectAttempts.put(exchangeConfig.getExchangeName(), 0);
+        connect(exchangeConfig.getExchangeName());
     }
 
     private void connect(String clientId) throws InterruptedException {
-        ClientConfig config = clientConfigs.get(clientId);
+        ClientConfig config = CLIENT_CONFIG.get(clientId);
         Bootstrap bootstrap = clientBootstraps.get(clientId);
         if (config == null || bootstrap == null) {
             System.err.println("客户端 " + clientId + " 无配置或引导程序");
@@ -212,7 +239,7 @@ public class NettySocketClient {
             clientSubscriptions.remove(clientId);
             clientSubscriptionConfigs.remove(clientId);
             clientSubscriptionCallbacks.remove(clientId);
-            clientConfigs.remove(clientId);
+            CLIENT_CONFIG.remove(clientId);
             clientBootstraps.remove(clientId);
             clientHandshakers.remove(clientId);
         }
@@ -324,7 +351,7 @@ public class NettySocketClient {
         clientSubscriptions.remove(clientId);
         clientSubscriptionConfigs.remove(clientId);
         clientSubscriptionCallbacks.remove(clientId);
-        clientConfigs.remove(clientId);
+        CLIENT_CONFIG.remove(clientId);
         clientBootstraps.remove(clientId);
         clientHandshakers.remove(clientId);
         if (channel != null) {
@@ -341,7 +368,7 @@ public class NettySocketClient {
         clientSubscriptions.clear();
         clientSubscriptionConfigs.clear();
         clientSubscriptionCallbacks.clear();
-        clientConfigs.clear();
+        CLIENT_CONFIG.clear();
         clientBootstraps.clear();
         clientHandshakers.clear();
         group.shutdownGracefully();

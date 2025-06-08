@@ -1,8 +1,14 @@
 package com.trade.strategy;
 
+import com.alibaba.fastjson.JSONObject;
+import com.trade.dto.ExchangeConfig;
 import com.trade.dto.StrategyConfig;
 import com.trade.exchange.ExchangeFactory;
+import com.trade.socket.MessageData;
+import com.trade.socket.NettySocketClient;
+import com.trade.socket.subscript.OkxSubScript;
 import com.trade.strategy.impl.ContractHedgingGridStrategy;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.stereotype.Component;
 
@@ -13,10 +19,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static com.trade.socket.constants.ExchangeConstant.*;
+
+@Slf4j
 @Component
 public class StrategyManager {
 
     final ExchangeFactory exchangeFactory;
+    NettySocketClient nettySocketClient = null;
 
     private final Map<String, TradeStrategy> strategies;
     private final Map<String, Set<String>> strategySubscriptions;
@@ -25,14 +35,40 @@ public class StrategyManager {
         this.exchangeFactory = exchangeFactory;
         this.strategies = new ConcurrentHashMap<>();
         this.strategySubscriptions = new ConcurrentHashMap<>();
+        nettySocketClient = new NettySocketClient(this::distributeMessage);
+    }
+
+    public void connectSocket(ExchangeConfig exchangeConfig){
+        try {
+            nettySocketClient.startClient(exchangeConfig,
+                    OKX_SUBSCRIPTION_FORMAT,
+                    OKX_CALL_BACK,
+                    false,
+                    null,
+                    null
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void addStrategy(StrategyConfig config) {
-        TradeStrategy strategy = new ContractHedgingGridStrategy(exchangeFactory.get(config.getSymbol()),config);
-        strategies.put(strategy.getKey(), strategy);
-        strategySubscriptions.putIfAbsent(strategy.getKey(), ConcurrentHashMap.newKeySet());
-//        System.out.println("策略 " + strategy.getKey() + " 已添加，订阅主题: " + config.getSubscribedTopics());
-        System.out.println("策略 " + strategy.getKey() + " 已添加，订阅主题: ");
+        try {
+            boolean clientActive = nettySocketClient.isClientActive(config.getExchange());
+            if(!clientActive){
+                return;
+            }
+            TradeStrategy strategy = new ContractHedgingGridStrategy(exchangeFactory.get(config.getSymbol()),config);
+            strategies.put(strategy.getKey(), strategy);
+            strategySubscriptions.putIfAbsent(strategy.getKey(), ConcurrentHashMap.newKeySet());
+            config.getSubscribedTopics().forEach(v->{
+                nettySocketClient.subscribe(config.getExchange(), v);
+            });
+            System.out.println("策略 " + strategy.getKey() + " 已添加，订阅主题: " + config.getSubscribedTopics());
+//            System.out.println("策略 " + strategy.getKey() + " 已添加，订阅主题: ");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void startStrategy(String strategyId, String clientId) {
@@ -41,8 +77,8 @@ public class StrategyManager {
             try {
                 strategy.start();
                 strategySubscriptions.get(strategyId).addAll(strategy.getConfig().getSubscribedTopics());
-                strategy.getConfig().getSubscribedTopics().forEach(topic -> socketClient.subscribe(clientId, topic));
-                System.out.println("策略 " + strategyId + " 已启动，订阅主题: " + strategy.getSubscribedTopics());
+//                strategy.getConfig().getSubscribedTopics().forEach(topic -> socketClient.subscribe(clientId, topic));
+                System.out.println("策略 " + strategyId + " 已启动，订阅主题: " + strategy.getConfig().getSubscribedTopics());
                 if (strategy.getConfig().getIsAutoRestart()) {
                     System.out.println("策略 " + strategyId + " 已启用自动重启");
                 }
@@ -80,14 +116,15 @@ public class StrategyManager {
         }
     }
 
-    public void distributeMessage(String message) {
+    public void distributeMessage(MessageData message) {
+        log.info("message: {}", JSONObject.toJSONString(message));
         // 按优先级排序分发消息
         List<TradeStrategy> sortedStrategies = strategies.values().stream()
                 .filter(s -> s.getStatus() == TradeStrategy.Status.RUNNING)
                 .sorted(Comparator.comparingInt(s -> s.getConfig().getPriority()))
                 .collect(Collectors.toList());
-        for (WebProperties.Resources.Chain.Strategy strategy : sortedStrategies) {
-            strategy.handleMessage(message);
+        for (TradeStrategy strategy : sortedStrategies) {
+//            strategy.handleMessage(message);
         }
     }
 
@@ -96,15 +133,15 @@ public class StrategyManager {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus()));
     }
 
-    public Strategy.Status getStrategyStatus(String strategyId) {
-        Strategy strategy = strategies.get(strategyId);
+    public TradeStrategy.Status getStrategyStatus(String strategyId) {
+        TradeStrategy strategy = strategies.get(strategyId);
         return strategy != null ? strategy.getStatus() : null;
     }
 
     // 自动重启策略（在客户端重连后调用）
     public void autoRestartStrategies(String clientId) {
         strategies.values().stream()
-                .filter(s -> s.getConfig().isAutoRestart() && s.getStatus() != Strategy.Status.RUNNING)
-                .forEach(s -> startStrategy(s.getId(), clientId));
+                .filter(s -> s.getConfig().getIsAutoRestart() && s.getStatus() != TradeStrategy.Status.RUNNING)
+                .forEach(s -> startStrategy(s.getKey(), clientId));
     }
 }

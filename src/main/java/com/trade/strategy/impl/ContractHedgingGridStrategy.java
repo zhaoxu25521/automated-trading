@@ -68,7 +68,7 @@ public class ContractHedgingGridStrategy implements TradeStrategy {
 
     @Override
     public String getKey() {
-        return String.format("%s-%s", name(), config.getSymbol());
+        return String.format("%s-%s-%s",config.getExchange(), name(), config.getSymbol());
     }
 
     // 启动策略

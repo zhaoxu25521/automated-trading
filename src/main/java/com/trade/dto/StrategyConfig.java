@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -34,7 +35,7 @@ import java.util.Set;
  */
 @Data
 public class StrategyConfig {
-    private String exchange = ExchangeEnums.BINANCE.name();
+    private final String exchange ;
 
     private Set<String> subscribedTopics;
     private final BigDecimal hedgeRatio;
@@ -54,15 +55,18 @@ public class StrategyConfig {
     private final BigDecimal takeProfit;
     private final int atrPeriod;
     private final BigDecimal atrMultiplier;
+    private int priority;
 
     private Boolean isAutoRestart;
+    private Boolean autoRestart;
 
-    public StrategyConfig(BigDecimal hedgeRatio, BigDecimal gridInterval, String symbol,
+    public StrategyConfig(String exchange,BigDecimal hedgeRatio, BigDecimal gridInterval, String symbol,
                           int gridCount, int priceScale, int quantityScale,
                           long monitorIntervalMs, long retryDelayMs, int leverage,
                           BigDecimal maxPosition, BigDecimal minMargin, BigDecimal baseQuantity,
                           BigDecimal riskPerTrade, BigDecimal stopLoss, BigDecimal takeProfit,
-                          int atrPeriod, BigDecimal atrMultiplier) {
+                          int atrPeriod, BigDecimal atrMultiplier,Set<String> subscribedTopics) {
+        this.exchange = exchange;
         this.hedgeRatio = hedgeRatio.setScale(quantityScale, RoundingMode.HALF_UP);
         this.gridInterval = gridInterval.setScale(priceScale, RoundingMode.HALF_UP);
         this.symbol = symbol;
@@ -80,6 +84,10 @@ public class StrategyConfig {
         this.takeProfit = takeProfit.setScale(quantityScale, RoundingMode.HALF_UP);
         this.atrPeriod = atrPeriod;
         this.atrMultiplier = atrMultiplier.setScale(quantityScale, RoundingMode.HALF_UP);
+
+        this.subscribedTopics = subscribedTopics != null ? new HashSet<>(subscribedTopics) : new HashSet<>();
+        this.priority = Math.max(0, Math.min(100, priority));
+        this.autoRestart = autoRestart;
     }
 
     public BigDecimal getHedgeRatio() { return hedgeRatio; }
