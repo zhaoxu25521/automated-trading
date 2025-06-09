@@ -1,8 +1,4 @@
-package com.trade.socket.netty.handler;
-
-import com.trade.socket.netty.client.NettyClient;
-
-/**
+ /**
     package com.trade.socket.netty.handler;
 
 /**
@@ -10,7 +6,6 @@ import com.trade.socket.netty.client.NettyClient;
  * @param <T> 消息类型
  */
 public interface MessageHandler<T> {
-    /*
     * 处理消息
      * @param message 接收到的消息
      * @param ctx 处理上下文

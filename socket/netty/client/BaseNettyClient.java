@@ -49,13 +49,11 @@ public class BaseNettyClient<T> implements NettyClient<T> {
 
         try {
             // 配置SSL上下文（如果需要）
-            SslContext sslContext;
+            SslContext sslContext = null;
             if (sslEnabled) {
                 sslContext = SslContextBuilder.forClient()
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .build();
-            } else {
-                sslContext = null;
             }
 
             Bootstrap bootstrap = new Bootstrap();

@@ -456,3 +456,5 @@ Caused by: io.lettuce.core.RedisCommandExecutionException: NOAUTH HELLO must be 
 2025-06-09T19:31:48.256+04:00 DEBUG 21410 --- [http-nio-8080-exec-3] c.trade.mapper.TradeMapper.selectList    : ==>  Preparing: SELECT id,name,rest_api_url,supported_symbols,max_leverage,status,created_at,updated_at FROM strategy
 2025-06-09T19:31:48.257+04:00 DEBUG 21410 --- [http-nio-8080-exec-3] c.trade.mapper.TradeMapper.selectList    : ==> Parameters: 
 2025-06-09T19:31:48.259+04:00 DEBUG 21410 --- [http-nio-8080-exec-3] c.trade.mapper.TradeMapper.selectList    : <==      Total: 0
+2025-06-09T20:01:51.478+04:00  INFO 21410 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-06-09T20:01:51.481+04:00  INFO 21410 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
