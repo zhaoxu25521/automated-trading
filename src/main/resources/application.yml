@@ -1,0 +1,66 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: automated-trading
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/trading?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: wm
+      database: 3
+      timeout: 10000
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1
+          max-idle: 8
+          min-idle: 0
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.trade.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    root: info
+    com.trade: debug
+  file:
+    name: logs/automated-trading.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# 交易所配置
+trading:
+  websocket:
+    reconnect-interval: 10000  # 重连间隔（毫秒）
+    heartbeat-interval: 30000  # 心跳间隔（毫秒）
+    connection-timeout: 60000  # 连接超时（毫秒）
+  rest:
+    connect-timeout: 10000     # 连接超时（毫秒）
+    read-timeout: 30000        # 读取超时（毫秒）
+    write-timeout: 30000       # 写入超时（毫秒）
+  sync:
+    interval: 300000           # 数据同步间隔（毫秒）
