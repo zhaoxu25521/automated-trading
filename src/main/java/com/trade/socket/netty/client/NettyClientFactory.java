@@ -1,6 +1,7 @@
 package com.trade.socket.netty.client;
 
 import com.trade.socket.netty.handler.MessageDispatcher;
+import com.trade.socket.netty.handler.MessageHandler;
 import com.trade.socket.netty.manager.DefaultConnectionManager;
 import com.trade.socket.netty.manager.DefaultSubscriptionManager;
 import com.trade.socket.netty.util.WebSocketURLParser;
@@ -35,7 +36,7 @@ public class NettyClientFactory {
         List<MessageHandler<String>> handlers = new ArrayList<>();
 
         // 创建消息分发器并添加到处理器链
-        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers);
+        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers,client);
 
         // 创建连接管理器
         DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
@@ -45,7 +46,7 @@ public class NettyClientFactory {
         DefaultSubscriptionManager subscriptionManager = new DefaultSubscriptionManager(client);
 
         // 初始化连接
-        connectionManager.initConnection(wsUrl.getHost(), wsUrl.getPort());
+        connectionManager.initConnection();
 
         return client;
     }
@@ -80,7 +81,7 @@ public class NettyClientFactory {
             heartbeatInterval, heartbeatMessage, wsUrl.isSsl());
         DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
             wsUrl.getPort(), client);
-        connectionManager.initConnection(wsUrl.getHost(), wsUrl.getPort());
+        connectionManager.initConnection();
         return client;
     }
 
@@ -114,10 +115,10 @@ public class NettyClientFactory {
         WebSocketURL wsUrl = WebSocketURLParser.parse(url);
         BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
             30, "PING", wsUrl.isSsl());
-        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers);
+        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers,client);
         DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
             wsUrl.getPort(), client);
-        connectionManager.initConnection(wsUrl.getHost(), wsUrl.getPort());
+        connectionManager.initConnection();
         return client;
     }
 

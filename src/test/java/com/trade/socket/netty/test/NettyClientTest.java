@@ -98,7 +98,7 @@ public class NettyClientTest {
     @Test
     public void testHeartbeat() throws Exception {
         // 创建带心跳的客户端
-        NettyClient<String> client = NettyClientFactory.createClientWithHeartbeat(
+        NettyClient<String> client = NettyClientFactory.createCustomClient(
                 TEST_SERVER, HEARTBEAT_INTERVAL, HEARTBEAT_MESSAGE);
 
         // 创建订阅管理器
