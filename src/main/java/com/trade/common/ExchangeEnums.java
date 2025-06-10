@@ -23,4 +23,44 @@ public class ExchangeEnums {
 
     }
 
+    /**
+     * 开平仓模式下，side和posSide需要进行组合
+     * 开多：买入开多（side 填写 buy； posSide 填写 long ）
+     * 开空：卖出开空（side 填写 sell； posSide 填写 short ）
+     * 平多：卖出平多（side 填写 sell；posSide 填写 long ）
+     * 平空：买入平空（side 填写 buy； posSide 填写 short ）
+     */
+    @AllArgsConstructor
+    public enum OrderSide{
+        BUY("buy","买"),
+        SELL("sell","卖"),
+        ;
+        @Getter
+        private String code;
+        @Getter
+        private String msg;
+    }
+
+    @AllArgsConstructor
+    public enum Direction{
+        LONG("long","多"),
+        SHORT("short","空"),
+        ;
+        @Getter
+        private String code;
+        @Getter
+        private String msg;
+    }
+
+    @AllArgsConstructor
+    public enum OrderType{
+        LIMIT("","限价委托"),
+
+        ;
+        @Getter
+        private String code;
+        @Getter
+        private String msg;
+    }
+
 }

@@ -13,7 +13,7 @@ public class Strategy {
     private Long id;
     private String name;
     private String exchange;
-    private JSONObject params;
+    private String params;
     private String status;
     private Long createdAt;
     private Long updatedAt;

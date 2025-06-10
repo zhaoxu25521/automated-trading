@@ -1638,3 +1638,5 @@ org.springframework.expression.spel.SpelEvaluationException: EL1007E: Property o
 2025-06-10T14:39:16.057+04:00 DEBUG 50849 --- [http-nio-8080-exec-4] c.t.m.ExchangeAccountMapper.selectList   : ==>  Preparing: SELECT id,name,exchange_id,api_key,secret_key,passphrase,status,created_at,updated_at FROM exchange_account
 2025-06-10T14:39:16.058+04:00 DEBUG 50849 --- [http-nio-8080-exec-4] c.t.m.ExchangeAccountMapper.selectList   : ==> Parameters: 
 2025-06-10T14:39:16.063+04:00 DEBUG 50849 --- [http-nio-8080-exec-4] c.t.m.ExchangeAccountMapper.selectList   : <==      Total: 1
+2025-06-10T14:43:06.578+04:00  INFO 50849 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-06-10T14:43:06.584+04:00  INFO 50849 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
