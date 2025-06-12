@@ -14,9 +14,8 @@ public class RandomUtils {
     public static String generateRandomString(int maxLength) {
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         Random random = new Random();
-        int length = random.nextInt(maxLength + 1); // 随机长度 0 到 maxLength
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < maxLength; i++) {
             sb.append(characters.charAt(random.nextInt(characters.length())));
         }
         return sb.toString();
@@ -29,12 +28,10 @@ public class RandomUtils {
      */
     public static String randomUidString(int maxLength) {
         String uuid = UUID.randomUUID().toString().replaceAll("-", "");
-        int length = (int) (Math.random() * (maxLength + 1)); // 随机长度
-        return uuid.substring(0, Math.min(length, uuid.length()));
+        return uuid.substring(0, Math.min(maxLength, uuid.length()));
     }
 
     public static String randomStringLang(int maxLength) {
-        int length = (int) (Math.random() * (maxLength + 1)); // 随机长度
-        return RandomStringUtils.randomAlphanumeric(length);
+        return RandomStringUtils.randomAlphanumeric(maxLength);
     }
 }

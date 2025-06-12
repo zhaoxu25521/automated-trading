@@ -1,13 +1,15 @@
 package com.trade.cache;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.trade.common.ExchangeEnums;
+import com.trade.utils.SnowflakeIdGenerator;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.trade.utils.RandomUtils.randomStringLang;
+import static com.trade.utils.RandomUtils.*;
 
 public class CacheMangerTest {
 
@@ -30,14 +32,20 @@ public class CacheMangerTest {
 
     @Test
     public void cacheTest2() {
+        long t = System.currentTimeMillis();
+        String xxxxx = null;
+        SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(1, 1);
         Set<String> a = new HashSet<>();
-        for (int i = 0; i < 1000000; i++){
-            boolean add = a.add(randomStringLang(5));
-            if(!add){
-                System.out.println("重复字符串"+);
+        for (int i = 0; i < 10000; i++){
+            xxxxx = String.valueOf(idGenerator.nextId());
+            boolean x = a.add(xxxxx);
+            System.out.println( xxxxx );
+            if(!x ){
+                System.out.println( xxxxx );
                 break;
             }
         }
         System.out.println(a.size());
+        System.out.println(System.currentTimeMillis() -t );
     }
 }
