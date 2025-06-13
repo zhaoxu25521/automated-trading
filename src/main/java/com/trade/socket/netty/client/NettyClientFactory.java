@@ -23,7 +23,7 @@ public class NettyClientFactory {
      * @return NettyClient实例
      * @throws Exception 当URL解析失败时抛出
      */
-    public static NettyClient createDefaultClient(String url) throws Exception {
+    public static NettyClient createDefaultClient(String url) {
         WebSocketURL wsUrl = WebSocketURLParser.parse(url);
         
         // 默认配置
@@ -37,8 +37,8 @@ public class NettyClientFactory {
         MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers, null);
         
         // 创建基础客户端
-        BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
-            heartbeatInterval, heartbeatMessage, wsUrl.isSsl(), dispatcher);
+        BaseNettyClient client = new BaseNettyClient(wsUrl,
+            heartbeatInterval, heartbeatMessage, dispatcher);
             
         // 设置客户端的消息分发器
         dispatcher.setClient(client);
@@ -87,8 +87,8 @@ public class NettyClientFactory {
         MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers, null);
         
         // 创建基础客户端
-        BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
-            heartbeatInterval, heartbeatMessage, wsUrl.isSsl(), dispatcher);
+        BaseNettyClient client = new BaseNettyClient(wsUrl,
+            heartbeatInterval, heartbeatMessage,  dispatcher);
             
         // 设置客户端的消息分发器
         dispatcher.setClient(client);
@@ -131,9 +131,11 @@ public class NettyClientFactory {
     public static NettyClient createClientWithHandlers(String url,
                                                             List<MessageHandler<String>> handlers,MessageDispatcher<String> dispatcher) throws Exception {
         WebSocketURL wsUrl = WebSocketURLParser.parse(url);
-        BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
-            30, "PING", wsUrl.isSsl(),dispatcher);
+        BaseNettyClient client = new BaseNettyClient(wsUrl,
+            30, "PING",dispatcher);
+
         handlers.forEach(v->dispatcher.addHandler(v));
+
         DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
             wsUrl.getPort(), client);
         connectionManager.initConnection();

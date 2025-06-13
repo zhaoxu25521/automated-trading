@@ -1,5 +1,7 @@
 package com.trade.socket.netty.util;
 
+import lombok.Getter;
+
 /**
  * WebSocket URL解析工具类
  */
@@ -59,18 +61,21 @@ public class WebSocketURLParser {
             throw new IllegalArgumentException("Host cannot be empty");
         }
 
-        return new WebSocketURL(host, port, ssl);
+        return new WebSocketURL(url,host, port, ssl);
     }
 
     /**
      * WebSocket URL信息类
      */
     public static class WebSocketURL {
+        @Getter
+        private final String url;
         private final String host;
         private final int port;
         private final boolean ssl;
 
-        public WebSocketURL(String host, int port, boolean ssl) {
+        public WebSocketURL(String url,String host, int port, boolean ssl) {
+            this.url = url;
             this.host = host;
             this.port = port;
             this.ssl = ssl;

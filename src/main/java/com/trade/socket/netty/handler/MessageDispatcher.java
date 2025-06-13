@@ -2,6 +2,8 @@ package com.trade.socket.netty.handler;
 
 import com.trade.socket.netty.client.NettyClient;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -15,6 +17,11 @@ public class MessageDispatcher<T> {
 
     public MessageDispatcher(List<MessageHandler<T>> handlers, NettyClient client) {
         this.handlers = handlers;
+        this.client = client;
+    }
+
+    public MessageDispatcher(NettyClient client) {
+        this.handlers = new ArrayList<>();
         this.client = client;
     }
 
