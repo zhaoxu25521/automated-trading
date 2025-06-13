@@ -16,16 +16,16 @@ public class DefaultConnectionManager {
 
     private final String host;
     private final int port;
-    private final NettyClient<?> client;
+    private final NettyClient client;
     private final AtomicBoolean connecting = new AtomicBoolean(false);
     private final int maxRetries;
     private final long retryInterval;
 
-    public DefaultConnectionManager(String host, int port, NettyClient<?> client) {
+    public DefaultConnectionManager(String host, int port, NettyClient client) {
         this(host, port, client, 3, 5000);
     }
 
-    public DefaultConnectionManager(String host, int port, NettyClient<?> client,
+    public DefaultConnectionManager(String host, int port, NettyClient client,
                                   int maxRetries, long retryInterval) {
         this.host = host;
         this.port = port;

@@ -1,18 +1,24 @@
 package com.trade.socket.netty.handler;
 
 import com.trade.socket.netty.client.NettyClient;
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 /**
  * 消息分发器
  * @param <T> 消息类型
  */
+@Slf4j
 public class MessageDispatcher<T> {
     private final List<MessageHandler<T>> handlers;
-    private final NettyClient<T> client;
+    private NettyClient client;
 
-    public MessageDispatcher(List<MessageHandler<T>> handlers, NettyClient<T> client) {
+    public MessageDispatcher(List<MessageHandler<T>> handlers, NettyClient client) {
         this.handlers = handlers;
+        this.client = client;
+    }
+
+    public void setClient(NettyClient client) {
         this.client = client;
     }
 
@@ -21,10 +27,19 @@ public class MessageDispatcher<T> {
      * @param message 要处理的消息
      */
     public void dispatch(T message) {
+        if (client == null) {
+            log.error("Client is not set in MessageDispatcher");
+            return;
+        }
+        
         MessageHandler.HandlerContext ctx = new MessageHandler.HandlerContext(client);
         for (MessageHandler<T> handler : handlers) {
-            if (!handler.handle(message, ctx)) {
-                break; // 如果处理器返回false，停止后续处理
+            try {
+                if (!handler.handle(message, ctx)) {
+                    break; // 如果处理器返回false，停止后续处理
+                }
+            } catch (Exception e) {
+                log.error("Error handling message", e);
             }
         }
     }

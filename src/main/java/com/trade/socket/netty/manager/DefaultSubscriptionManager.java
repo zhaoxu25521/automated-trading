@@ -12,11 +12,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @param <T> 消息类型
  */
 public class DefaultSubscriptionManager<T> {
-    private final NettyClient<T> client;
+    private final NettyClient client;
     private final Map<String, List<MessageHandler<T>>> topicSubscriptions = new ConcurrentHashMap<>();
     private final List<MessageHandler<T>> globalHandlers = new CopyOnWriteArrayList<>();
 
-    public DefaultSubscriptionManager(NettyClient<T> client) {
+    public DefaultSubscriptionManager(NettyClient client) {
         this.client = client;
     }
 
@@ -27,6 +27,7 @@ public class DefaultSubscriptionManager<T> {
      */
     public void subscribe(String topic, MessageHandler<T> handler) {
         topicSubscriptions.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>()).add(handler);
+        client.send(topic);
     }
 
     /**

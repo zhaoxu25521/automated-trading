@@ -6,6 +6,7 @@ import com.trade.socket.netty.manager.DefaultConnectionManager;
 import com.trade.socket.netty.manager.DefaultSubscriptionManager;
 import com.trade.socket.netty.util.WebSocketURLParser;
 import com.trade.socket.netty.util.WebSocketURLParser.WebSocketURL;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
 /**
  * Netty客户端工厂类
  */
+@Slf4j
 public class NettyClientFactory {
     
     /**
@@ -21,33 +23,33 @@ public class NettyClientFactory {
      * @return NettyClient实例
      * @throws Exception 当URL解析失败时抛出
      */
-    public static NettyClient<String> createDefaultClient(String url) throws Exception {
+    public static NettyClient createDefaultClient(String url) throws Exception {
         WebSocketURL wsUrl = WebSocketURLParser.parse(url);
         
         // 默认配置
         int heartbeatInterval = 30; // 30秒心跳间隔
-        String heartbeatMessage = "PING"; // 心跳消息内容
+        String heartbeatMessage = "ping"; // 心跳消息内容
+        
+        // 创建消息处理器列表
+        List<MessageHandler<String>> handlers = new ArrayList<>();
+        
+        // 创建消息分发器
+        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers, null);
         
         // 创建基础客户端
         BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
-            heartbeatInterval, heartbeatMessage, wsUrl.isSsl());
-
-        // 创建消息处理器列表
-        List<MessageHandler<String>> handlers = new ArrayList<>();
-
-        // 创建消息分发器并添加到处理器链
-        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers,client);
-
+            heartbeatInterval, heartbeatMessage, wsUrl.isSsl(), dispatcher);
+            
+        // 设置客户端的消息分发器
+        dispatcher.setClient(client);
+        
         // 创建连接管理器
-        DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
-            wsUrl.getPort(), client);
-
-        // 创建订阅管理器
-        DefaultSubscriptionManager subscriptionManager = new DefaultSubscriptionManager(client);
-
+        DefaultConnectionManager connectionManager = new DefaultConnectionManager(
+            wsUrl.getHost(), wsUrl.getPort(), client);
+            
         // 初始化连接
         connectionManager.initConnection();
-
+        
         return client;
     }
 
@@ -57,7 +59,7 @@ public class NettyClientFactory {
      * @param port 端口号
      * @return NettyClient实例
      */
-    public static NettyClient<String> createDefaultClient(String host, int port) {
+    public static NettyClient createDefaultClient(String host, int port) {
         try {
             String url = "ws://" + host + ":" + port;
             return createDefaultClient(url);
@@ -74,14 +76,30 @@ public class NettyClientFactory {
      * @return NettyClient实例
      * @throws Exception 当URL解析失败时抛出
      */
-    public static NettyClient<String> createCustomClient(String url,
-                                                       int heartbeatInterval, String heartbeatMessage) throws Exception {
+    public static NettyClient createCustomClient(String url, int heartbeatInterval,
+                                                       String heartbeatMessage) throws Exception {
         WebSocketURL wsUrl = WebSocketURLParser.parse(url);
+        
+        // 创建消息处理器列表
+        List<MessageHandler<String>> handlers = new ArrayList<>();
+        
+        // 创建消息分发器
+        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers, null);
+        
+        // 创建基础客户端
         BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
-            heartbeatInterval, heartbeatMessage, wsUrl.isSsl());
-        DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
-            wsUrl.getPort(), client);
+            heartbeatInterval, heartbeatMessage, wsUrl.isSsl(), dispatcher);
+            
+        // 设置客户端的消息分发器
+        dispatcher.setClient(client);
+        
+        // 创建连接管理器
+        DefaultConnectionManager connectionManager = new DefaultConnectionManager(
+            wsUrl.getHost(), wsUrl.getPort(), client);
+            
+        // 初始化连接
         connectionManager.initConnection();
+        
         return client;
     }
 
@@ -93,7 +111,7 @@ public class NettyClientFactory {
      * @param heartbeatMessage 心跳消息内容
      * @return NettyClient实例
      */
-    public static NettyClient<String> createCustomClient(String host, int port,
+    public static NettyClient createCustomClient(String host, int port,
                                                        int heartbeatInterval, String heartbeatMessage) {
         try {
             String url = "ws://" + host + ":" + port;
@@ -110,12 +128,12 @@ public class NettyClientFactory {
      * @return NettyClient实例
      * @throws Exception 当URL解析失败时抛出
      */
-    public static NettyClient<String> createClientWithHandlers(String url,
-                                                            List<MessageHandler<String>> handlers) throws Exception {
+    public static NettyClient createClientWithHandlers(String url,
+                                                            List<MessageHandler<String>> handlers,MessageDispatcher<String> dispatcher) throws Exception {
         WebSocketURL wsUrl = WebSocketURLParser.parse(url);
         BaseNettyClient<String> client = new BaseNettyClient<>(wsUrl.getHost(), wsUrl.getPort(),
-            30, "PING", wsUrl.isSsl());
-        MessageDispatcher<String> dispatcher = new MessageDispatcher<>(handlers,client);
+            30, "PING", wsUrl.isSsl(),dispatcher);
+        handlers.forEach(v->dispatcher.addHandler(v));
         DefaultConnectionManager connectionManager = new DefaultConnectionManager(wsUrl.getHost(),
             wsUrl.getPort(), client);
         connectionManager.initConnection();
@@ -129,11 +147,11 @@ public class NettyClientFactory {
      * @param handlers 自定义消息处理器列表
      * @return NettyClient实例
      */
-    public static NettyClient<String> createClientWithHandlers(String host, int port,
-                                                            List<MessageHandler<String>> handlers) {
+    public static NettyClient createClientWithHandlers(String host, int port,
+                                                            List<MessageHandler<String>> handlers,MessageDispatcher dispatcher) {
         try {
             String url = "ws://" + host + ":" + port;
-            return createClientWithHandlers(url, handlers);
+            return createClientWithHandlers(url, handlers,dispatcher);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create client", e);
         }

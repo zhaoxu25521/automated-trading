@@ -22,13 +22,13 @@ public interface MessageHandler<T> {
      * 处理器链上下文
      */
     class HandlerContext {
-        private final NettyClient<?> client;
+        private final NettyClient client;
 
-        public HandlerContext(NettyClient<?> client) {
+        public HandlerContext(NettyClient client) {
             this.client = client;
         }
 
-        public NettyClient<?> getClient() {
+        public NettyClient getClient() {
             return client;
         }
     }
